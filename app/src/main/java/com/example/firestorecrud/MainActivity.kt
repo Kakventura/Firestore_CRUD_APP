@@ -6,6 +6,12 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -43,14 +50,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
@@ -61,7 +70,7 @@ import androidx.navigation.navArgument
 import com.example.firestorecrud.ui.theme.FirestoreCRUDTheme
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
-
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     val db = Firebase.firestore
@@ -69,56 +78,40 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            FirestoreCRUDTheme {
-                val navController = rememberNavController()
-                Scaffold(modifier = Modifier.fillMaxSize()) { paddingValues ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = "login",
-                        modifier = Modifier.padding(paddingValues)
-                    ) {
-                        composable("login") {
-                            LoginScreen(
-                                onLogin = { userName ->
-                                    navController.navigate("home/${userName}")
-                                },
-                                onRegisterClick = {
-                                    navController.navigate("register")
-                                }
-                            )
-                        }
-                        composable("register") {
-                            RegisterScreen(
-                                onRegisterComplete = {
-                                    navController.navigate("login")
-                                },
-                                onLoginClick = {
-                                    navController.navigate("login")
-                                }
-                            )
-                        }
-                        composable(
-                            "home/{userName}",
-                            arguments = listOf(navArgument("userName") {
-                                type = NavType.StringType
-                            })
-                        ) { backStackEntry ->
-                            val userName = backStackEntry.arguments?.getString("userName") ?: ""
-                            HomeScreen(
-                                userName = userName,
-                                onLogout = {
-                                    navController.navigate("login") {
-                                        popUpTo("home/{userName}") { inclusive = true }
-                                    }
-                                }
-                            )
-                        }
+            val navController = rememberNavController()
+            Scaffold(modifier = Modifier.fillMaxSize()) { paddingValues ->
+                NavHost(
+                    navController = navController,
+                    startDestination = "login",
+                    modifier = Modifier.padding(paddingValues)
+                ) {
+                    composable("login") {
+                        LoginScreen(
+                            onLogin = { userName -> navController.navigate("home/$userName") },
+                            onRegisterClick = { navController.navigate("register") }
+                        )
+                    }
+                    composable("register") {
+                        RegisterScreen(
+                            onRegisterComplete = { navController.navigate("login") },
+                            onLoginClick = { navController.navigate("login") }
+                        )
+                    }
+                    composable(
+                        "home/{userName}",
+                        arguments = listOf(navArgument("userName") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val userName = backStackEntry.arguments?.getString("userName") ?: ""
+                        HomeScreen(userName = userName, onLogout = {
+                            navController.navigate("login") { popUpTo("home/{userName}") { inclusive = true } }
+                        })
                     }
                 }
             }
         }
     }
 }
+
 
 
 @Composable
@@ -135,23 +128,20 @@ fun RegisterScreen(
     var errorMessage by remember { mutableStateOf("") }
     val db = Firebase.firestore
 
-    // Cores do tema
-    val primaryColor = Color(0xFF5EA500) // Nova cor verde do primeiro código
-    val primaryDarkColor = Color(0xFF4A8400)
+    val primaryColor = Color(0xFF5EA500)
     val textColor = Color.White
-    val cardBackground = Color(0xFF1E1E1E) // Fundo escuro como no primeiro código
-    val textColorDark = Color.White // Texto branco como no primeiro código
-    val labelColor = Color.Gray // Cor dos labels como no primeiro código
+    val cardBackground = Color(0xFF1E1E1E)
+    val labelColor = Color.Gray
 
-    // Gradiente de fundo
-    val gradient = Brush.verticalGradient(
-        colors = listOf(Color(0xFF121212), Color(0xFF121212)) // Fundo escuro sólido
+    val LobsterTwo = FontFamily(
+        Font(R.font.lobster_two_regular, weight = FontWeight.Normal),
+        Font(R.font.lobster_two_bold, weight = FontWeight.Bold)
     )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(brush = gradient),
+            .background(Color(0xFF121212)),
         contentAlignment = Alignment.Center
     ) {
         Card(
@@ -166,23 +156,35 @@ fun RegisterScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(cardBackground)
                     .padding(horizontal = 24.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Adicionando a logo no topo
+                val infiniteTransition = rememberInfiniteTransition(label = "float")
+                val offsetY by infiniteTransition.animateFloat(
+                    initialValue = -10f,
+                    targetValue = 10f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(2000, easing = LinearEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "offsetY"
+                )
+
                 Image(
-                    painter = painterResource(id = R.drawable.etec),
+                    painter = painterResource(id = R.drawable.loginicon),
                     contentDescription = "Logo",
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(240.dp)
+                        .offset { IntOffset(0, offsetY.roundToInt()) }
                         .padding(bottom = 16.dp)
                 )
+
                 Text(
                     "Registro",
-                    fontFamily = FontFamily.Cursive,
+                    fontFamily = LobsterTwo,
                     fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
                     color = primaryColor,
                     modifier = Modifier.padding(vertical = 24.dp)
                 )
@@ -200,8 +202,9 @@ fun RegisterScreen(
                     onValueChange = { nome = it },
                     label = "Nome",
                     backgroundColor = cardBackground,
-                    textColor = textColorDark,
-                    labelColor = labelColor
+                    textColor = textColor,
+                    labelColor = labelColor,
+                    fontFamily = LobsterTwo
                 )
 
                 CustomDarkTextField(
@@ -209,8 +212,9 @@ fun RegisterScreen(
                     onValueChange = { apelido = it },
                     label = "Nickname",
                     backgroundColor = cardBackground,
-                    textColor = textColorDark,
-                    labelColor = labelColor
+                    textColor = textColor,
+                    labelColor = labelColor,
+                    fontFamily = LobsterTwo
                 )
 
                 CustomDarkTextField(
@@ -218,8 +222,9 @@ fun RegisterScreen(
                     onValueChange = { email = it },
                     label = "E-mail",
                     backgroundColor = cardBackground,
-                    textColor = textColorDark,
-                    labelColor = labelColor
+                    textColor = textColor,
+                    labelColor = labelColor,
+                    fontFamily = LobsterTwo
                 )
 
                 CustomDarkTextField(
@@ -227,9 +232,21 @@ fun RegisterScreen(
                     onValueChange = { senha = it },
                     label = "Senha",
                     backgroundColor = cardBackground,
-                    textColor = textColorDark,
+                    textColor = textColor,
                     labelColor = labelColor,
-                    isPassword = true
+                    isPassword = !mostrarSenha,
+                    trailingIcon = {
+                        IconButton(onClick = { mostrarSenha = !mostrarSenha }) {
+                            Icon(
+                                painter = painterResource(
+                                    id = if (mostrarSenha) R.drawable.visivel else R.drawable.invisivel
+                                ),
+                                contentDescription = "Toggle password visibility",
+                                tint = labelColor
+                            )
+                        }
+                    },
+                    fontFamily = LobsterTwo
                 )
 
                 CustomDarkTextField(
@@ -237,8 +254,9 @@ fun RegisterScreen(
                     onValueChange = { telefone = it },
                     label = "Telefone",
                     backgroundColor = cardBackground,
-                    textColor = textColorDark,
-                    labelColor = labelColor
+                    textColor = textColor,
+                    labelColor = labelColor,
+                    fontFamily = LobsterTwo
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -258,15 +276,13 @@ fun RegisterScreen(
                             "telefone" to telefone
                         )
 
-                        db.collection("banco") // Usando a mesma coleção do primeiro código
+                        db.collection("banco")
                             .add(usuario)
                             .addOnSuccessListener {
-                                Log.d("Firestore", "Documento adicionado com ID: ${it.id}")
                                 onRegisterComplete()
                             }
                             .addOnFailureListener { e ->
                                 errorMessage = "Erro ao cadastrar: ${e.message}"
-                                Log.w("Firestore", "Erro ao adicionar documento", e)
                             }
                     },
                     modifier = Modifier
@@ -276,17 +292,20 @@ fun RegisterScreen(
                         containerColor = primaryColor,
                         contentColor = textColor
                     ),
-                    shape = RoundedCornerShape(10.dp) // Bordas arredondadas como no primeiro código
+                    shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Cadastrar", fontSize = 18.sp)
+                    Text(
+                        "Cadastrar",
+                        fontSize = 18.sp,
+                        fontFamily = LobsterTwo,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Button(
-                    onClick = {
-                        onLoginClick()
-                    },
+                    onClick = { onLoginClick() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
@@ -297,7 +316,12 @@ fun RegisterScreen(
                     shape = RoundedCornerShape(10.dp),
                     border = BorderStroke(1.dp, primaryColor)
                 ) {
-                    Text("Já tem uma conta? Faça login", fontSize = 16.sp)
+                    Text(
+                        "Já tem uma conta? Faça login",
+                        fontSize = 16.sp,
+                        fontFamily = LobsterTwo,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -378,13 +402,27 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
+            // Cria uma transição infinita para o deslocamento vertical
+            val infiniteTransition = rememberInfiniteTransition(label = "float")
+            val offsetY by infiniteTransition.animateFloat(
+                initialValue = -10f,
+                targetValue = 10f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(2000, easing = LinearEasing), // 2 segundos para subir/descer
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "offsetY"
+            )
+
             Image(
-                painter = painterResource(id = R.drawable.etec),
+                painter = painterResource(id = R.drawable.loginicon),
                 contentDescription = "Logo",
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(240.dp) // Aumenta o tamanho
+                    .offset { IntOffset(0, offsetY.roundToInt()) } // Faz "flutuar"
                     .padding(bottom = 16.dp)
             )
+
         }
 
         // Conteúdo rolável
@@ -454,12 +492,16 @@ fun LoginScreen(
     var errorMessage by remember { mutableStateOf("") }
     val db = Firebase.firestore
 
-    // Cores do tema do primeiro código
     val backgroundColor = Color(0xFF121212)
-    val primaryColor = Color(0xFF5EA500)
+    val primaryColor = Color(0xFFFFB300)
     val textColor = Color.White
     val cardBackground = Color(0xFF1E1E1E)
     val labelColor = Color.Gray
+
+    val LobsterTwo = FontFamily(
+        Font(R.font.lobster_two_regular, weight = FontWeight.Normal),
+        Font(R.font.lobster_two_bold, weight = FontWeight.Bold)
+    )
 
     Column(
         modifier = Modifier
@@ -469,18 +511,32 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Adicionando a logo no topo
+        // Logo animado
+        val infiniteTransition = rememberInfiniteTransition(label = "float")
+        val offsetY by infiniteTransition.animateFloat(
+            initialValue = -10f,
+            targetValue = 10f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2000, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "offsetY"
+        )
+
         Image(
-            painter = painterResource(id = R.drawable.etec),
+            painter = painterResource(id = R.drawable.loginicon),
             contentDescription = "Logo",
             modifier = Modifier
-                .size(100.dp)
+                .size(240.dp)
+                .offset { IntOffset(0, offsetY.roundToInt()) }
                 .padding(bottom = 16.dp)
         )
+
         Text(
             "Login",
-            fontFamily = FontFamily.SansSerif,
-            fontSize = 26.sp,
+            fontFamily = LobsterTwo,
+            fontWeight = FontWeight.Bold,
+            fontSize = 44.sp,
             color = primaryColor,
             modifier = Modifier.padding(vertical = 24.dp)
         )
@@ -493,13 +549,15 @@ fun LoginScreen(
             )
         }
 
+        // Campos de texto
         CustomDarkTextField(
             value = email,
             onValueChange = { email = it },
             label = "E-mail",
             backgroundColor = cardBackground,
             textColor = textColor,
-            labelColor = labelColor
+            labelColor = labelColor,
+            fontFamily = LobsterTwo
         )
 
         CustomDarkTextField(
@@ -520,11 +578,13 @@ fun LoginScreen(
                         tint = labelColor
                     )
                 }
-            }
+            },
+            fontFamily = LobsterTwo
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Botão Entrar
         Button(
             onClick = {
                 if (email.isBlank() || senha.isBlank()) {
@@ -540,7 +600,8 @@ fun LoginScreen(
                         if (documents.isEmpty) {
                             errorMessage = "Credenciais inválidas"
                         } else {
-                            val nomeUsuario = documents.documents[0].getString("apelido") ?: email
+                            val nomeUsuario =
+                                documents.documents[0].getString("apelido") ?: email
                             onLogin(nomeUsuario)
                         }
                     }
@@ -555,17 +616,20 @@ fun LoginScreen(
             colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
             shape = RoundedCornerShape(10.dp)
         ) {
-            Text("Entrar", fontSize = 18.sp, color = Color.White)
+            Text(
+                "Entrar",
+                fontSize = 18.sp,
+                color = Color.White,
+                fontFamily = LobsterTwo,
+                fontWeight = FontWeight.Bold
+            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Button(
-            onClick = {
-                onRegisterClick()
-            },
-            modifier = Modifier
-                .fillMaxWidth(),
+            onClick = { onRegisterClick() },
+            modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Transparent,
                 contentColor = primaryColor
@@ -573,14 +637,18 @@ fun LoginScreen(
             shape = RoundedCornerShape(10.dp),
             border = BorderStroke(1.dp, primaryColor)
         ) {
-            Text("Não tem conta? Cadastre-se", fontSize = 16.sp)
+            Text(
+                "Não tem conta? Cadastre-se",
+                fontSize = 16.sp,
+                fontFamily = LobsterTwo,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
 
 //TEMA ESCURO
 @Composable
-
 fun CustomDarkTextField(
     value: String,
     onValueChange: (String) -> Unit,
@@ -589,8 +657,9 @@ fun CustomDarkTextField(
     textColor: Color,
     labelColor: Color,
     isPassword: Boolean = false,
-    trailingIcon: @Composable (() -> Unit)? = null
-) {    val primaryDarkColor = Color(0xFF4A8400)
+    trailingIcon: @Composable (() -> Unit)? = null,
+    fontFamily: FontFamily? = null
+) {    val primaryDarkColor = Color(0xFFFFB300)
 
     TextField(
         value = value,
