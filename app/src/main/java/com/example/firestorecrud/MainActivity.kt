@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -55,10 +56,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -142,194 +147,226 @@ fun RegisterScreen(
         Font(R.font.lobster_two_bold, weight = FontWeight.Bold)
     )
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212)),
-        contentAlignment = Alignment.Center
+            .background(Color(0xFF121212))
     ) {
-        Card(
+        // Conteúdo rolável central
+        Column(
             modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(0.9f)
-                .verticalScroll(rememberScrollState()),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(12.dp),
-            colors = CardDefaults.cardColors(containerColor = cardBackground)
+                .weight(1f) // ocupa espaço entre topo e footer
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
+            val infiniteTransition = rememberInfiniteTransition(label = "float")
+            val offsetY by infiniteTransition.animateFloat(
+                initialValue = -10f,
+                targetValue = 10f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(2000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "offsetY"
+            )
+
+            Image(
+                painter = painterResource(id = R.drawable.loginicon),
+                contentDescription = "Logo",
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                val infiniteTransition = rememberInfiniteTransition(label = "float")
-                val offsetY by infiniteTransition.animateFloat(
-                    initialValue = -10f,
-                    targetValue = 10f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(2000, easing = LinearEasing),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "offsetY"
-                )
+                    .size(240.dp)
+                    .offset { IntOffset(0, offsetY.roundToInt()) }
+                    .padding(bottom = 16.dp)
+            )
 
-                Image(
-                    painter = painterResource(id = R.drawable.loginicon),
-                    contentDescription = "Logo",
-                    modifier = Modifier
-                        .size(240.dp)
-                        .offset { IntOffset(0, offsetY.roundToInt()) }
-                        .padding(bottom = 16.dp)
-                )
+            Text(
+                "Registro",
+                fontFamily = LobsterTwo,
+                fontSize = 40.sp,
+                fontWeight = FontWeight.Bold,
+                color = primaryColor,
+                modifier = Modifier.padding(vertical = 24.dp)
+            )
 
+            if (errorMessage.isNotEmpty()) {
                 Text(
-                    "Registro",
+                    text = errorMessage,
+                    color = Color(0xFFFFB300),
+                    modifier = Modifier.padding(bottom = 8.dp),
                     fontFamily = LobsterTwo,
-                    fontSize = 40.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = primaryColor,
-                    modifier = Modifier.padding(vertical = 24.dp)
                 )
+            }
 
-                if (errorMessage.isNotEmpty()) {
-                    Text(
-                        text = errorMessage,
-                        color = Color(0xFFFFB300),
-                        modifier = Modifier.padding(bottom = 8.dp),
-                        fontFamily = LobsterTwo,
-                    )
-                }
-
-                CustomDarkTextField(
-                    value = nome,
-                    onValueChange = { nome = it },
-                    label = "Nome",
-                    backgroundColor = cardBackground,
-                    textColor = textColor,
-                    labelColor = labelColor,
-                    fontFamily = LobsterTwo
-                )
-
-                CustomDarkTextField(
-                    value = apelido,
-                    onValueChange = { apelido = it },
-                    label = "Nickname",
-                    backgroundColor = cardBackground,
-                    textColor = textColor,
-                    labelColor = labelColor,
-                    fontFamily = LobsterTwo
-                )
-
-                CustomDarkTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = "E-mail",
-                    backgroundColor = cardBackground,
-                    textColor = textColor,
-                    labelColor = labelColor,
-                    fontFamily = LobsterTwo
-                )
-
-                CustomDarkTextField(
-                    value = senha,
-                    onValueChange = { senha = it },
-                    label = "Senha",
-                    backgroundColor = cardBackground,
-                    textColor = textColor,
-                    labelColor = labelColor,
-                    isPassword = !mostrarSenha,
-                    trailingIcon = {
-                        IconButton(onClick = { mostrarSenha = !mostrarSenha }) {
-                            Icon(
-                                painter = painterResource(
-                                    id = if (mostrarSenha) R.drawable.visivel else R.drawable.invisivel
-                                ),
-                                contentDescription = "Toggle password visibility",
-                                tint = labelColor
-                            )
-                        }
-                    },
-                    fontFamily = LobsterTwo
-                )
-
-                CustomDarkTextField(
-                    value = telefone,
-                    onValueChange = { telefone = it },
-                    label = "Telefone",
-                    backgroundColor = cardBackground,
-                    textColor = textColor,
-                    labelColor = labelColor,
-                    fontFamily = LobsterTwo
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Button(
-                    onClick = {
-                        if (nome.isBlank() || apelido.isBlank() || email.isBlank() || senha.isBlank()) {
-                            errorMessage = "Preencha todos os campos obrigatórios"
-                            return@Button
-                        }
-
-                        val usuario = hashMapOf(
-                            "nome" to nome,
-                            "apelido" to apelido,
-                            "email" to email,
-                            "senha" to senha,
-                            "telefone" to telefone
+            // Campos de formulário
+            CustomDarkTextField(
+                value = nome,
+                onValueChange = { nome = it },
+                label = "Nome",
+                backgroundColor = cardBackground,
+                textColor = textColor,
+                labelColor = labelColor,
+                fontFamily = LobsterTwo
+            )
+            CustomDarkTextField(
+                value = apelido,
+                onValueChange = { apelido = it },
+                label = "Nickname",
+                backgroundColor = cardBackground,
+                textColor = textColor,
+                labelColor = labelColor,
+                fontFamily = LobsterTwo
+            )
+            CustomDarkTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = "E-mail",
+                backgroundColor = cardBackground,
+                textColor = textColor,
+                labelColor = labelColor,
+                fontFamily = LobsterTwo
+            )
+            CustomDarkTextField(
+                value = senha,
+                onValueChange = { senha = it },
+                label = "Senha",
+                backgroundColor = cardBackground,
+                textColor = textColor,
+                labelColor = labelColor,
+                isPassword = !mostrarSenha,
+                trailingIcon = {
+                    IconButton(onClick = { mostrarSenha = !mostrarSenha }) {
+                        Icon(
+                            painter = painterResource(
+                                id = if (mostrarSenha) R.drawable.visivel else R.drawable.invisivel
+                            ),
+                            contentDescription = "Toggle password visibility",
+                            tint = labelColor
                         )
+                    }
+                },
+                fontFamily = LobsterTwo
+            )
+            CustomDarkTextField(
+                value = telefone,
+                onValueChange = { input ->
+                    // só mantém os dígitos, máximo 11
+                    telefone = input.filter { it.isDigit() }.take(11)
+                },
+                label = "Telefone",
+                backgroundColor = cardBackground,
+                textColor = textColor,
+                labelColor = labelColor,
+                fontFamily = LobsterTwo,
+                visualTransformation = PhoneMaskTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
 
-                        db.collection("banco")
-                            .add(usuario)
-                            .addOnSuccessListener {
-                                onRegisterComplete()
-                            }
-                            .addOnFailureListener { e ->
-                                errorMessage = "Erro ao cadastrar: ${e.message}"
-                            }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = primaryColor,
-                        contentColor = textColor
-                    ),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text(
-                        "Cadastrar",
-                        fontSize = 18.sp,
-                        fontFamily = LobsterTwo,
-                        fontWeight = FontWeight.Bold
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Button(
+                onClick = {
+                    if (nome.isBlank() || apelido.isBlank() || email.isBlank() || senha.isBlank()) {
+                        errorMessage = "Preencha todos os campos obrigatórios"
+                        return@Button
+                    }
+
+                    val usuario = hashMapOf(
+                        "nome" to nome,
+                        "apelido" to apelido,
+                        "email" to email,
+                        "senha" to senha,
+                        "telefone" to telefone
                     )
-                }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    db.collection("banco")
+                        .add(usuario)
+                        .addOnSuccessListener { onRegisterComplete() }
+                        .addOnFailureListener { e ->
+                            errorMessage = "Erro ao cadastrar: ${e.message}"
+                        }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryColor,
+                    contentColor = textColor
+                ),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text(
+                    "Cadastrar",
+                    fontSize = 18.sp,
+                    fontFamily = LobsterTwo,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-                Button(
-                    onClick = { onLoginClick() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = primaryColor
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, primaryColor)
-                ) {
-                    Text(
-                        "Já tem uma conta? Faça login",
-                        fontSize = 16.sp,
-                        fontFamily = LobsterTwo,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = { onLoginClick() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = primaryColor
+                ),
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.dp, primaryColor)
+            ) {
+                Text(
+                    "Já tem uma conta? Faça login",
+                    fontSize = 16.sp,
+                    fontFamily = LobsterTwo,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
+
+        // ======= FOOTER FIXO =======
+        Footer()
+    }
+}
+
+// Máscara de telefone (##) #####-####
+class PhoneMaskTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val trimmed = text.text.filter { it.isDigit() }.take(11)
+        val formatted = StringBuilder()
+        for (i in trimmed.indices) {
+            when (i) {
+                0 -> formatted.append("(").append(trimmed[i])
+                1 -> formatted.append(trimmed[i]).append(") ")
+                6 -> formatted.append("-").append(trimmed[i])
+                else -> formatted.append(trimmed[i])
+            }
+        }
+        return TransformedText(
+            AnnotatedString(formatted.toString()),
+            object : OffsetMapping {
+                override fun originalToTransformed(offset: Int): Int {
+                    return when {
+                        offset <= 1 -> offset + 1
+                        offset <= 5 -> offset + 3
+                        offset <= 10 -> offset + 4
+                        else -> 14
+                    }
+                }
+
+                override fun transformedToOriginal(offset: Int): Int {
+                    return when {
+                        offset <= 2 -> offset - 1
+                        offset <= 7 -> offset - 3
+                        offset <= 12 -> offset - 4
+                        else -> 11
+                    }
+                }
+            }
+        )
     }
 }
 
@@ -345,13 +382,11 @@ fun HomeScreen(
     val banco = remember { mutableStateListOf<Map<String, Any>>() }
     val scrollState = rememberScrollState()
 
-    // Cores do tema
     val backgroundColor = Color(0xFF121212)
     val primaryColor = Color(0xFFFFB300)
     val textColor = Color.White
     val cardBackground = Color(0xFF1E1E1E)
 
-    // Fonte LobsterTwo
     val LobsterTwo = FontFamily(
         Font(R.font.lobster_two_regular, weight = FontWeight.Normal),
         Font(R.font.lobster_two_bold, weight = FontWeight.Bold)
@@ -362,71 +397,64 @@ fun HomeScreen(
             .fillMaxSize()
             .background(backgroundColor)
     ) {
-        // Menu no topo
-        Box(
+        // ======= TOPO FIXO =======
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 16.dp),
-            contentAlignment = Alignment.TopEnd
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            IconButton(onClick = { menuExpanded = true }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Menu",
-                    tint = primaryColor
-                )
-            }
-
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false },
-                offset = DpOffset(x = 0.dp, y = 0.dp),
-                containerColor = cardBackground
+            // MENU
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.CenterEnd
             ) {
-                DropdownMenuItem(
-                    text = { Text("Listar Registros", fontFamily = LobsterTwo, color = primaryColor) },
-                    onClick = {
-                        menuExpanded = false
-                        db.collection("banco")
-                            .get()
-                            .addOnSuccessListener { result ->
-                                banco.clear()
-                                for (document in result) {
-                                    banco.add(document.data)
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Menu",
+                        tint = primaryColor
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                    offset = DpOffset(x = (-30).dp, y = 0.dp),
+                    containerColor = cardBackground
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Listar Registros", fontFamily = LobsterTwo, color = primaryColor) },
+                        onClick = {
+                            menuExpanded = false
+                            db.collection("banco")
+                                .get()
+                                .addOnSuccessListener { result ->
+                                    banco.clear()
+                                    for (document in result) {
+                                        banco.add(document.data)
+                                    }
+                                    mostrarRegistros = true
                                 }
-                                mostrarRegistros = true
-                            }
-                            .addOnFailureListener { exception ->
-                                Log.w("HomeScreen", "Erro ao obter registros.", exception)
-                            }
-                    }
-                )
-
-                DropdownMenuItem(
-                    onClick = {
-                        menuExpanded = false
-                        onLogout()
-                    },
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Image(
-                                painter = painterResource(id = R.drawable.logout),
-                                contentDescription = "Sair",
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Sair", fontFamily = LobsterTwo, color = primaryColor)
                         }
-                    }
-                )
+                    )
+                    DropdownMenuItem(
+                        onClick = { menuExpanded = false; onLogout() },
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.logout),
+                                    contentDescription = "Sair",
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("Sair", fontFamily = LobsterTwo, color = primaryColor)
+                            }
+                        }
+                    )
+                }
             }
-        }
 
-        // Logo flutuante
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
+            // LOGO ANIMADO
             val infiniteTransition = rememberInfiniteTransition(label = "float")
             val offsetY by infiniteTransition.animateFloat(
                 initialValue = -10f,
@@ -437,7 +465,6 @@ fun HomeScreen(
                 ),
                 label = "offsetY"
             )
-
             Image(
                 painter = painterResource(id = R.drawable.analisar),
                 contentDescription = "Logo",
@@ -446,15 +473,8 @@ fun HomeScreen(
                     .offset { IntOffset(0, offsetY.roundToInt()) }
                     .padding(bottom = 16.dp)
             )
-        }
 
-        // Texto fixo de boas-vindas centralizado
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            contentAlignment = Alignment.Center
-        ) {
+            // TEXTO DE BOAS-VINDAS
             Text(
                 "Bem-vindo, $userName!",
                 fontFamily = LobsterTwo,
@@ -465,15 +485,16 @@ fun HomeScreen(
             )
         }
 
-        // Conteúdo rolável: apenas registros
-        if (mostrarRegistros) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+        // ======= CONTEÚDO ROLÁVEL (APENAS REGISTROS) =======
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (mostrarRegistros) {
                 banco.forEachIndexed { index, registro ->
                     Column(
                         modifier = Modifier
@@ -496,31 +517,31 @@ fun HomeScreen(
                         Text("Telefone: ${registro["telefone"]}", color = textColor, fontFamily = LobsterTwo)
                     }
                 }
-            }
-        } else {
-            // Mensagem quando não há registros
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 32.dp, horizontal = 16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Use o menu no canto superior direito para listar os registros",
-                    color = Color.Gray,
-                    fontSize = 24.sp,
-                    textAlign = TextAlign.Center,
-                    fontFamily = LobsterTwo
-                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Use o menu no canto superior direito para listar os registros",
+                        color = Color.Gray,
+                        fontSize = 24.sp,
+                        textAlign = TextAlign.Center,
+                        fontFamily = LobsterTwo
+                    )
+                }
             }
         }
+
+        // ======= FOOTER FIXO =======
+        Footer()
     }
 }
 
 
 
-
-//TELA DE LOGIN E CADASTRO
 @Composable
 fun LoginScreen(
     onLogin: (String) -> Unit,
@@ -545,148 +566,160 @@ fun LoginScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxSize() // ocupa toda a altura da tela
             .background(backgroundColor)
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
     ) {
-        // Logo animado
-        val infiniteTransition = rememberInfiniteTransition(label = "float")
-        val offsetY by infiniteTransition.animateFloat(
-            initialValue = -10f,
-            targetValue = 10f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(2000, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "offsetY"
-        )
-
-        Image(
-            painter = painterResource(id = R.drawable.loginicon),
-            contentDescription = "Logo",
+        // Conteúdo central ocupa todo o espaço restante
+        Column(
             modifier = Modifier
-                .size(240.dp)
-                .offset { IntOffset(0, offsetY.roundToInt()) }
-                .padding(bottom = 16.dp)
-        )
-
-        Text(
-            "Login",
-            fontFamily = LobsterTwo,
-            fontWeight = FontWeight.Bold,
-            fontSize = 44.sp,
-            color = primaryColor,
-            modifier = Modifier.padding(vertical = 24.dp)
-        )
-
-        if (errorMessage.isNotEmpty()) {
-            Text(
-                text = errorMessage,
-                color = Color(0xFFFFB300),
-                modifier = Modifier.padding(bottom = 8.dp),
-                fontFamily = LobsterTwo,
-            )
-        }
-
-        // Campos de texto
-        CustomDarkTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = "E-mail",
-            backgroundColor = cardBackground,
-            textColor = textColor,
-            labelColor = labelColor,
-            fontFamily = LobsterTwo
-        )
-
-        CustomDarkTextField(
-            value = senha,
-            onValueChange = { senha = it },
-            label = "Senha",
-            backgroundColor = cardBackground,
-            textColor = textColor,
-            labelColor = labelColor,
-            isPassword = !mostrarSenha,
-            trailingIcon = {
-                IconButton(onClick = { mostrarSenha = !mostrarSenha }) {
-                    Icon(
-                        painter = painterResource(
-                            id = if (mostrarSenha) R.drawable.visivel else R.drawable.invisivel
-                        ),
-                        contentDescription = "Toggle password visibility",
-                        tint = labelColor
-                    )
-                }
-            },
-            fontFamily = LobsterTwo
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Botão Entrar
-        Button(
-            onClick = {
-                if (email.isBlank() || senha.isBlank()) {
-                    errorMessage = "Preencha todos os campos"
-                    return@Button
-                }
-
-                db.collection("banco")
-                    .whereEqualTo("email", email)
-                    .whereEqualTo("senha", senha)
-                    .get()
-                    .addOnSuccessListener { documents ->
-                        if (documents.isEmpty) {
-                            errorMessage = "Credenciais inválidas"
-                        } else {
-                            val nomeUsuario =
-                                documents.documents[0].getString("apelido") ?: email
-                            onLogin(nomeUsuario)
-                        }
-                    }
-                    .addOnFailureListener { exception ->
-                        errorMessage = "Erro ao fazer login: ${exception.message}"
-                        Log.w("Login", "Erro ao verificar login", exception)
-                    }
-            },
-            modifier = Modifier
+                .weight(1f) // preenche o espaço restante
                 .fillMaxWidth()
-                .padding(top = 24.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
-            shape = RoundedCornerShape(10.dp)
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .verticalScroll(rememberScrollState()), // rolagem se necessário
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                "Entrar",
-                fontSize = 18.sp,
-                color = Color.White,
-                fontFamily = LobsterTwo,
-                fontWeight = FontWeight.Bold
+            // Logo animado
+            val infiniteTransition = rememberInfiniteTransition(label = "float")
+            val offsetY by infiniteTransition.animateFloat(
+                initialValue = -10f,
+                targetValue = 10f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(2000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "offsetY"
             )
+
+            Image(
+                painter = painterResource(id = R.drawable.loginicon),
+                contentDescription = "Logo",
+                modifier = Modifier
+                    .size(240.dp)
+                    .offset { IntOffset(0, offsetY.roundToInt()) }
+                    .padding(bottom = 16.dp)
+            )
+
+            Text(
+                "Login",
+                fontFamily = LobsterTwo,
+                fontWeight = FontWeight.Bold,
+                fontSize = 44.sp,
+                color = primaryColor,
+                modifier = Modifier.padding(vertical = 24.dp)
+            )
+
+            if (errorMessage.isNotEmpty()) {
+                Text(
+                    text = errorMessage,
+                    color = Color(0xFFFFB300),
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    fontFamily = LobsterTwo,
+                )
+            }
+
+            // Campos de texto
+            CustomDarkTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = "E-mail",
+                backgroundColor = cardBackground,
+                textColor = textColor,
+                labelColor = labelColor,
+                fontFamily = LobsterTwo
+            )
+
+            CustomDarkTextField(
+                value = senha,
+                onValueChange = { senha = it },
+                label = "Senha",
+                backgroundColor = cardBackground,
+                textColor = textColor,
+                labelColor = labelColor,
+                isPassword = !mostrarSenha,
+                trailingIcon = {
+                    IconButton(onClick = { mostrarSenha = !mostrarSenha }) {
+                        Icon(
+                            painter = painterResource(
+                                id = if (mostrarSenha) R.drawable.visivel else R.drawable.invisivel
+                            ),
+                            contentDescription = "Toggle password visibility",
+                            tint = labelColor
+                        )
+                    }
+                },
+                fontFamily = LobsterTwo
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Botão Entrar
+            Button(
+                onClick = {
+                    if (email.isBlank() || senha.isBlank()) {
+                        errorMessage = "Preencha todos os campos"
+                        return@Button
+                    }
+
+                    db.collection("banco")
+                        .whereEqualTo("email", email)
+                        .whereEqualTo("senha", senha)
+                        .get()
+                        .addOnSuccessListener { documents ->
+                            if (documents.isEmpty) {
+                                errorMessage = "Credenciais inválidas"
+                            } else {
+                                val nomeUsuario =
+                                    documents.documents[0].getString("apelido") ?: email
+                                onLogin(nomeUsuario)
+                            }
+                        }
+                        .addOnFailureListener { exception ->
+                            errorMessage = "Erro ao fazer login: ${exception.message}"
+                            Log.w("Login", "Erro ao verificar login", exception)
+                        }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text(
+                    "Entrar",
+                    fontSize = 18.sp,
+                    color = Color.White,
+                    fontFamily = LobsterTwo,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = { onRegisterClick() },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = primaryColor
+                ),
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.dp, primaryColor)
+            ) {
+                Text(
+                    "Não tem conta? Cadastre-se",
+                    fontSize = 16.sp,
+                    fontFamily = LobsterTwo,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Button(
-            onClick = { onRegisterClick() },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Transparent,
-                contentColor = primaryColor
-            ),
-            shape = RoundedCornerShape(10.dp),
-            border = BorderStroke(1.dp, primaryColor)
-        ) {
-            Text(
-                "Não tem conta? Cadastre-se",
-                fontSize = 16.sp,
-                fontFamily = LobsterTwo,
-                fontWeight = FontWeight.Bold
-            )
-        }
+        // Footer fixo na parte inferior
+        Footer()
     }
 }
+
 
 //TEMA ESCURO
 @Composable
@@ -699,7 +732,9 @@ fun CustomDarkTextField(
     labelColor: Color,
     isPassword: Boolean = false,
     trailingIcon: @Composable (() -> Unit)? = null,
-    fontFamily: FontFamily? = null
+    fontFamily: FontFamily? = null,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
 ) {    val primaryDarkColor = Color(0xFFFFB300)
 
     TextField(
@@ -725,27 +760,24 @@ fun CustomDarkTextField(
     )
 }
 
-
-@Preview
 @Composable
-fun LoginPreview() {
-    FirestoreCRUDTheme {
-        LoginScreen(onLogin = {}, onRegisterClick = {})
+fun Footer() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1E1E1E))
+            .padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            "Karinne Angelo – 3°Desenvolvimento de Sistemas (AMS) | © 2025." +
+                    "\nTodos os direitos reservados.",
+            color = Color.Gray,
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
-@Preview
-@Composable
-fun RegisterPreview() {
-    FirestoreCRUDTheme {
-        RegisterScreen(onRegisterComplete = {}, onLoginClick = {})
-    }
-}
 
-@Preview
-@Composable
-fun HomePreview() {
-    FirestoreCRUDTheme {
-    }
-}
 
