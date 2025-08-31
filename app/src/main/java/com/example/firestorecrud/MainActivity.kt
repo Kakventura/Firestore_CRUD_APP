@@ -81,22 +81,36 @@ import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 import kotlin.math.roundToInt
 
+// Classe responsável por inicializar o Firebase Firestore e cria uma navegação entre as páginas
 class MainActivity : ComponentActivity() {
+
+    //Inicialização do Firebase Firestore
     val db = Firebase.firestore
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+
+            // Cria o controlador de navegação entre as telas
             val navController = rememberNavController()
+
             Scaffold(modifier = Modifier.fillMaxSize()) { paddingValues ->
+
+                // Gerencia a navegaçção das telas
                 NavHost(
                     navController = navController,
-                    startDestination = "login",
+                    startDestination = "login", // Definição da tela inicial ao abrir o app
                     modifier = Modifier.padding(paddingValues)
                 ) {
+
+                    // Após o Login, será redirecionado para a tela de Home com o nome do usuário registrado no banco
                     composable("login") {
                         LoginScreen(
+
+                            // Após o Login, será redirecionado para a tela de Home com o nome do usuário registrado no banco
                             onLogin = { userName -> navController.navigate("home/$userName") },
+
                             onRegisterClick = { navController.navigate("register") }
                         )
                     }
@@ -110,7 +124,11 @@ class MainActivity : ComponentActivity() {
                         "home/{userName}",
                         arguments = listOf(navArgument("userName") { type = NavType.StringType })
                     ) { backStackEntry ->
+
+                        // Recupera o nome do usuário passado pela navegação
                         val userName = backStackEntry.arguments?.getString("userName") ?: ""
+
+                        //Função do Logout
                         HomeScreen(userName = userName, onLogout = {
                             navController.navigate("login") { popUpTo("home/{userName}") { inclusive = true } }
                         })
@@ -118,217 +136,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-}
-
-
-
-@Composable
-fun RegisterScreen(
-    onRegisterComplete: () -> Unit,
-    onLoginClick: () -> Unit
-) {
-    var nome by remember { mutableStateOf("") }
-    var apelido by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var senha by remember { mutableStateOf("") }
-    var telefone by remember { mutableStateOf("") }
-    var mostrarSenha by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
-    val db = Firebase.firestore
-
-    val primaryColor = Color(0xFFFFB300)
-    val textColor = Color.White
-    val cardBackground = Color(0xFF1E1E1E)
-    val labelColor = Color.Gray
-
-    val LobsterTwo = FontFamily(
-        Font(R.font.lobster_two_regular, weight = FontWeight.Normal),
-        Font(R.font.lobster_two_bold, weight = FontWeight.Bold)
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF121212))
-    ) {
-        // Conteúdo rolável central
-        Column(
-            modifier = Modifier
-                .weight(1f) // ocupa espaço entre topo e footer
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            val infiniteTransition = rememberInfiniteTransition(label = "float")
-            val offsetY by infiniteTransition.animateFloat(
-                initialValue = -10f,
-                targetValue = 10f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(2000, easing = LinearEasing),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "offsetY"
-            )
-
-            Image(
-                painter = painterResource(id = R.drawable.loginicon),
-                contentDescription = "Logo",
-                modifier = Modifier
-                    .size(240.dp)
-                    .offset { IntOffset(0, offsetY.roundToInt()) }
-                    .padding(bottom = 16.dp)
-            )
-
-            Text(
-                "Registro",
-                fontFamily = LobsterTwo,
-                fontSize = 40.sp,
-                fontWeight = FontWeight.Bold,
-                color = primaryColor,
-                modifier = Modifier.padding(vertical = 24.dp)
-            )
-
-            if (errorMessage.isNotEmpty()) {
-                Text(
-                    text = errorMessage,
-                    color = Color(0xFFFFB300),
-                    modifier = Modifier.padding(bottom = 8.dp),
-                    fontFamily = LobsterTwo,
-                )
-            }
-
-            // Campos de formulário
-            CustomDarkTextField(
-                value = nome,
-                onValueChange = { nome = it },
-                label = "Nome",
-                backgroundColor = cardBackground,
-                textColor = textColor,
-                labelColor = labelColor,
-                fontFamily = LobsterTwo
-            )
-            CustomDarkTextField(
-                value = apelido,
-                onValueChange = { apelido = it },
-                label = "Nickname",
-                backgroundColor = cardBackground,
-                textColor = textColor,
-                labelColor = labelColor,
-                fontFamily = LobsterTwo
-            )
-            CustomDarkTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = "E-mail",
-                backgroundColor = cardBackground,
-                textColor = textColor,
-                labelColor = labelColor,
-                fontFamily = LobsterTwo
-            )
-            CustomDarkTextField(
-                value = senha,
-                onValueChange = { senha = it },
-                label = "Senha",
-                backgroundColor = cardBackground,
-                textColor = textColor,
-                labelColor = labelColor,
-                isPassword = !mostrarSenha,
-                trailingIcon = {
-                    IconButton(onClick = { mostrarSenha = !mostrarSenha }) {
-                        Icon(
-                            painter = painterResource(
-                                id = if (mostrarSenha) R.drawable.visivel else R.drawable.invisivel
-                            ),
-                            contentDescription = "Toggle password visibility",
-                            tint = labelColor
-                        )
-                    }
-                },
-                fontFamily = LobsterTwo
-            )
-            CustomDarkTextField(
-                value = telefone,
-                onValueChange = { input ->
-                    // só mantém os dígitos, máximo 11
-                    telefone = input.filter { it.isDigit() }.take(11)
-                },
-                label = "Telefone",
-                backgroundColor = cardBackground,
-                textColor = textColor,
-                labelColor = labelColor,
-                fontFamily = LobsterTwo,
-                visualTransformation = PhoneMaskTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Button(
-                onClick = {
-                    if (nome.isBlank() || apelido.isBlank() || email.isBlank() || senha.isBlank()) {
-                        errorMessage = "Preencha todos os campos obrigatórios"
-                        return@Button
-                    }
-
-                    val usuario = hashMapOf(
-                        "nome" to nome,
-                        "apelido" to apelido,
-                        "email" to email,
-                        "senha" to senha,
-                        "telefone" to telefone
-                    )
-
-                    db.collection("banco")
-                        .add(usuario)
-                        .addOnSuccessListener { onRegisterComplete() }
-                        .addOnFailureListener { e ->
-                            errorMessage = "Erro ao cadastrar: ${e.message}"
-                        }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = primaryColor,
-                    contentColor = textColor
-                ),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text(
-                    "Cadastrar",
-                    fontSize = 18.sp,
-                    fontFamily = LobsterTwo,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Button(
-                onClick = { onLoginClick() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = primaryColor
-                ),
-                shape = RoundedCornerShape(10.dp),
-                border = BorderStroke(1.dp, primaryColor)
-            ) {
-                Text(
-                    "Já tem uma conta? Faça login",
-                    fontSize = 16.sp,
-                    fontFamily = LobsterTwo,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        // ======= FOOTER FIXO =======
-        Footer()
     }
 }
 
@@ -370,18 +177,33 @@ class PhoneMaskTransformation : VisualTransformation {
     }
 }
 
-//TELA PRINCIPAL DO USUARIO COM CADASTRO DAS INFORMAÇÕES
 @Composable
 fun HomeScreen(
+
+    // Reserva o nome do usuário para que seja exibido posteriormente
     userName: String = "Usuário",
+
     onLogout: () -> Unit
 ) {
+
+    // Estados locais
+
+    // Controla se o dropdown está aberto
     var menuExpanded by remember { mutableStateOf(false) }
+
+    // Controla a exibição dos registros
     var mostrarRegistros by remember { mutableStateOf(false) }
+
     val db = Firebase.firestore
+
+    // Faz a listagem dos dados salvos no firebase
     val banco = remember { mutableStateListOf<Map<String, Any>>() }
+
+    // Estado de rolagem
     val scrollState = rememberScrollState()
 
+
+    // Configuração de cores e fontes
     val backgroundColor = Color(0xFF121212)
     val primaryColor = Color(0xFFFFB300)
     val textColor = Color.White
@@ -404,11 +226,13 @@ fun HomeScreen(
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // MENU
+            // Menu Dropdown
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.CenterEnd
             ) {
+
+                // Botão para abrir menu
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
@@ -416,16 +240,22 @@ fun HomeScreen(
                         tint = primaryColor
                     )
                 }
+
+                // Conteúdo do menu
                 DropdownMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                     offset = DpOffset(x = (-30).dp, y = 0.dp),
                     containerColor = cardBackground
                 ) {
+
+                    // Conteúdo 1: Listar Registros
                     DropdownMenuItem(
                         text = { Text("Listar Registros", fontFamily = LobsterTwo, color = primaryColor) },
                         onClick = {
                             menuExpanded = false
+
+                            // Pega os registros do firebase
                             db.collection("banco")
                                 .get()
                                 .addOnSuccessListener { result ->
@@ -437,6 +267,8 @@ fun HomeScreen(
                                 }
                         }
                     )
+
+                   // Conteúdo 2: Sair
                     DropdownMenuItem(
                         onClick = { menuExpanded = false; onLogout() },
                         text = {
@@ -454,7 +286,7 @@ fun HomeScreen(
                 }
             }
 
-            // LOGO ANIMADO
+            // Logo com animação
             val infiniteTransition = rememberInfiniteTransition(label = "float")
             val offsetY by infiniteTransition.animateFloat(
                 initialValue = -10f,
@@ -474,9 +306,9 @@ fun HomeScreen(
                     .padding(bottom = 16.dp)
             )
 
-            // TEXTO DE BOAS-VINDAS
+            // Texto de boas vindas
             Text(
-                "Bem-vindo, $userName!",
+                "Bem-vindo(a), $userName!",
                 fontFamily = LobsterTwo,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
@@ -485,7 +317,7 @@ fun HomeScreen(
             )
         }
 
-        // ======= CONTEÚDO ROLÁVEL (APENAS REGISTROS) =======
+        // Deixar apenas os registros roláveis
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -495,6 +327,7 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (mostrarRegistros) {
+                // Exibição de cada registro
                 banco.forEachIndexed { index, registro ->
                     Column(
                         modifier = Modifier
@@ -524,6 +357,8 @@ fun HomeScreen(
                         .padding(vertical = 32.dp),
                     contentAlignment = Alignment.Center
                 ) {
+
+                    // Mensagem para caso nenhum registro esteja sendo exibido
                     Text(
                         text = "Use o menu no canto superior direito para listar os registros",
                         color = Color.Gray,
@@ -534,12 +369,9 @@ fun HomeScreen(
                 }
             }
         }
-
-        // ======= FOOTER FIXO =======
         Footer()
     }
 }
-
 
 
 @Composable
@@ -547,12 +379,17 @@ fun LoginScreen(
     onLogin: (String) -> Unit,
     onRegisterClick: () -> Unit
 ) {
+
+    // Armazrnamento de variáveis, controle de visibilidade de senha e mensagem de erro
     var email by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
     var mostrarSenha by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+
+    // Refernciação ao Firestore
     val db = Firebase.firestore
 
+    // Definição de Cores e Fontes
     val backgroundColor = Color(0xFF121212)
     val primaryColor = Color(0xFFFFB300)
     val textColor = Color.White
@@ -564,22 +401,22 @@ fun LoginScreen(
         Font(R.font.lobster_two_bold, weight = FontWeight.Bold)
     )
 
+    //Layout Principal
     Column(
         modifier = Modifier
-            .fillMaxSize() // ocupa toda a altura da tela
+            .fillMaxSize() // Ocupa toda a altura da tela
             .background(backgroundColor)
     ) {
-        // Conteúdo central ocupa todo o espaço restante
         Column(
             modifier = Modifier
-                .weight(1f) // preenche o espaço restante
+                .weight(1f) //Preenche o espaço restante
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 16.dp)
-                .verticalScroll(rememberScrollState()), // rolagem se necessário
+                .verticalScroll(rememberScrollState()), // Rolagem
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo animado
+            // Animação da imagem da logo
             val infiniteTransition = rememberInfiniteTransition(label = "float")
             val offsetY by infiniteTransition.animateFloat(
                 initialValue = -10f,
@@ -591,6 +428,7 @@ fun LoginScreen(
                 label = "offsetY"
             )
 
+            // Seleção da imagem
             Image(
                 painter = painterResource(id = R.drawable.loginicon),
                 contentDescription = "Logo",
@@ -600,6 +438,7 @@ fun LoginScreen(
                     .padding(bottom = 16.dp)
             )
 
+            // Título Principal
             Text(
                 "Login",
                 fontFamily = LobsterTwo,
@@ -609,6 +448,7 @@ fun LoginScreen(
                 modifier = Modifier.padding(vertical = 24.dp)
             )
 
+            // Mensagem de Erro
             if (errorMessage.isNotEmpty()) {
                 Text(
                     text = errorMessage,
@@ -618,7 +458,7 @@ fun LoginScreen(
                 )
             }
 
-            // Campos de texto
+            // E-mail
             CustomDarkTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -629,6 +469,7 @@ fun LoginScreen(
                 fontFamily = LobsterTwo
             )
 
+            // Senha coom controle de visibilidade
             CustomDarkTextField(
                 value = senha,
                 onValueChange = { senha = it },
@@ -653,7 +494,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botão Entrar
+            // Botão para validar os dados no Firebase
             Button(
                 onClick = {
                     if (email.isBlank() || senha.isBlank()) {
@@ -720,6 +561,236 @@ fun LoginScreen(
     }
 }
 
+@Composable
+fun RegisterScreen(
+    onRegisterComplete: () -> Unit,
+    onLoginClick: () -> Unit
+) {
+    // Variáveis de estado que armazenam o valor dos campos do formulário
+    var nome by remember { mutableStateOf("") }
+    var apelido by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var senha by remember { mutableStateOf("") }
+    var telefone by remember { mutableStateOf("") }
+    var mostrarSenha by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    val db = Firebase.firestore
+
+    // Cpnfiguração de cores e fontes
+    val primaryColor = Color(0xFFFFB300)
+    val textColor = Color.White
+    val cardBackground = Color(0xFF1E1E1E)
+    val labelColor = Color.Gray
+
+    val LobsterTwo = FontFamily(
+        Font(R.font.lobster_two_regular, weight = FontWeight.Normal),
+        Font(R.font.lobster_two_bold, weight = FontWeight.Bold)
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF121212))
+    ) {
+        // Conteúdo rolável central
+        Column(
+            modifier = Modifier
+                .weight(1f) // Ocupa espaço entre topo e footer
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            // Animação da Logo
+            val infiniteTransition = rememberInfiniteTransition(label = "float")
+            val offsetY by infiniteTransition.animateFloat(
+                initialValue = -10f,
+                targetValue = 10f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(2000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "offsetY"
+            )
+
+            // Seleção da imagem para a logo
+            Image(
+                painter = painterResource(id = R.drawable.loginicon),
+                contentDescription = "Logo",
+                modifier = Modifier
+                    .size(240.dp)
+                    .offset { IntOffset(0, offsetY.roundToInt()) }
+                    .padding(bottom = 16.dp)
+            )
+
+            // Título Principal
+            Text(
+                "Registro",
+                fontFamily = LobsterTwo,
+                fontSize = 40.sp,
+                fontWeight = FontWeight.Bold,
+                color = primaryColor,
+                modifier = Modifier.padding(vertical = 24.dp)
+            )
+
+            // Mensagem de erro
+            if (errorMessage.isNotEmpty()) {
+                Text(
+                    text = errorMessage,
+                    color = Color(0xFFFFB300),
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    fontFamily = LobsterTwo,
+                )
+            }
+
+            // Campos do formulário: nome
+            CustomDarkTextField(
+                value = nome,
+                onValueChange = { nome = it },
+                label = "Nome",
+                backgroundColor = cardBackground,
+                textColor = textColor,
+                labelColor = labelColor,
+                fontFamily = LobsterTwo
+            )
+
+            // Campos do formulário: apelido
+            CustomDarkTextField(
+                value = apelido,
+                onValueChange = { apelido = it },
+                label = "Nickname",
+                backgroundColor = cardBackground,
+                textColor = textColor,
+                labelColor = labelColor,
+                fontFamily = LobsterTwo
+            )
+
+            // Campos do formulário: e-mail
+            CustomDarkTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = "E-mail",
+                backgroundColor = cardBackground,
+                textColor = textColor,
+                labelColor = labelColor,
+                fontFamily = LobsterTwo
+            )
+
+            // Campos do formulário: senha
+            CustomDarkTextField(
+                value = senha,
+                onValueChange = { senha = it },
+                label = "Senha",
+                backgroundColor = cardBackground,
+                textColor = textColor,
+                labelColor = labelColor,
+                isPassword = !mostrarSenha,
+                trailingIcon = {
+                    IconButton(onClick = { mostrarSenha = !mostrarSenha }) {
+                        Icon(
+                            painter = painterResource(
+                                id = if (mostrarSenha) R.drawable.visivel else R.drawable.invisivel
+                            ),
+                            contentDescription = "Toggle password visibility",
+                            tint = labelColor
+                        )
+                    }
+                },
+                fontFamily = LobsterTwo
+            )
+
+            // Campos do formulário: telefone com limitação de caracteres
+            CustomDarkTextField(
+                value = telefone,
+                onValueChange = { input ->
+                    // só mantém os dígitos, máximo 11
+                    telefone = input.filter { it.isDigit() }.take(11)
+                },
+                label = "Telefone",
+                backgroundColor = cardBackground,
+                textColor = textColor,
+                labelColor = labelColor,
+                fontFamily = LobsterTwo,
+                visualTransformation = PhoneMaskTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Botão para cadastrar os dados e fazer a verificação
+            Button(
+                onClick = {
+
+                    // Valida se todos os campos obrigatórios devem estar preenchidos
+                    if (nome.isBlank() || apelido.isBlank() || email.isBlank() || senha.isBlank()) {
+                        errorMessage = "Preencha todos os campos obrigatórios"
+                        return@Button
+                    }
+
+                    // Cria o objeto do usuário
+                    val usuario = hashMapOf(
+                        "nome" to nome,
+                        "apelido" to apelido,
+                        "email" to email,
+                        "senha" to senha,
+                        "telefone" to telefone
+                    )
+
+                    // Inicia o Firestore
+                    db.collection("banco")
+                        .add(usuario)
+                        .addOnSuccessListener { onRegisterComplete() }
+                        .addOnFailureListener { e ->
+                            errorMessage = "Erro ao cadastrar: ${e.message}"
+                        }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryColor,
+                    contentColor = textColor
+                ),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text(
+                    "Cadastrar",
+                    fontSize = 18.sp,
+                    fontFamily = LobsterTwo,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Botão para retornar ao Login
+            Button(
+                onClick = { onLoginClick() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = primaryColor
+                ),
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.dp, primaryColor)
+            ) {
+                Text(
+                    "Já tem uma conta? Faça login",
+                    fontSize = 16.sp,
+                    fontFamily = LobsterTwo,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        // Footer Fixo
+        Footer()
+    }
+}
+
 
 //TEMA ESCURO
 @Composable
@@ -760,6 +831,7 @@ fun CustomDarkTextField(
     )
 }
 
+// Configuração do Rodapé
 @Composable
 fun Footer() {
     Box(
