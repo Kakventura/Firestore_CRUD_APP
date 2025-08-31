@@ -15,9 +15,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -59,6 +62,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -128,7 +132,7 @@ fun RegisterScreen(
     var errorMessage by remember { mutableStateOf("") }
     val db = Firebase.firestore
 
-    val primaryColor = Color(0xFF5EA500)
+    val primaryColor = Color(0xFFFFB300)
     val textColor = Color.White
     val cardBackground = Color(0xFF1E1E1E)
     val labelColor = Color.Gray
@@ -183,7 +187,7 @@ fun RegisterScreen(
                 Text(
                     "Registro",
                     fontFamily = LobsterTwo,
-                    fontSize = 26.sp,
+                    fontSize = 40.sp,
                     fontWeight = FontWeight.Bold,
                     color = primaryColor,
                     modifier = Modifier.padding(vertical = 24.dp)
@@ -192,8 +196,9 @@ fun RegisterScreen(
                 if (errorMessage.isNotEmpty()) {
                     Text(
                         text = errorMessage,
-                        color = Color.Red,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        color = Color(0xFFFFB300),
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        fontFamily = LobsterTwo,
                     )
                 }
 
@@ -338,25 +343,31 @@ fun HomeScreen(
     var mostrarRegistros by remember { mutableStateOf(false) }
     val db = Firebase.firestore
     val banco = remember { mutableStateListOf<Map<String, Any>>() }
-    val scrollState = rememberScrollState() // Adicionando estado de scroll
+    val scrollState = rememberScrollState()
 
-    // Cores do tema do primeiro código
+    // Cores do tema
     val backgroundColor = Color(0xFF121212)
-    val primaryColor = Color(0xFF5EA500)
+    val primaryColor = Color(0xFFFFB300)
     val textColor = Color.White
     val cardBackground = Color(0xFF1E1E1E)
+
+    // Fonte LobsterTwo
+    val LobsterTwo = FontFamily(
+        Font(R.font.lobster_two_regular, weight = FontWeight.Normal),
+        Font(R.font.lobster_two_bold, weight = FontWeight.Bold)
+    )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundColor)
     ) {
-        // Menu no topo (fora do scroll)
+        // Menu no topo
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 16.dp),
-            contentAlignment = Alignment.CenterEnd
+            contentAlignment = Alignment.TopEnd
         ) {
             IconButton(onClick = { menuExpanded = true }) {
                 Icon(
@@ -368,10 +379,12 @@ fun HomeScreen(
 
             DropdownMenu(
                 expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false }
+                onDismissRequest = { menuExpanded = false },
+                offset = DpOffset(x = 0.dp, y = 0.dp),
+                containerColor = cardBackground
             ) {
                 DropdownMenuItem(
-                    text = { Text("Listar Registros") },
+                    text = { Text("Listar Registros", fontFamily = LobsterTwo, color = primaryColor) },
                     onClick = {
                         menuExpanded = false
                         db.collection("banco")
@@ -384,100 +397,127 @@ fun HomeScreen(
                                 mostrarRegistros = true
                             }
                             .addOnFailureListener { exception ->
-                                Log.w(TAG, "Error getting documents.", exception)
+                                Log.w("HomeScreen", "Erro ao obter registros.", exception)
                             }
                     }
                 )
+
                 DropdownMenuItem(
-                    text = { Text("Sair") },
                     onClick = {
                         menuExpanded = false
                         onLogout()
+                    },
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painter = painterResource(id = R.drawable.logout),
+                                contentDescription = "Sair",
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text("Sair", fontFamily = LobsterTwo, color = primaryColor)
+                        }
                     }
                 )
             }
-
         }
+
+        // Logo flutuante
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            // Cria uma transição infinita para o deslocamento vertical
             val infiniteTransition = rememberInfiniteTransition(label = "float")
             val offsetY by infiniteTransition.animateFloat(
                 initialValue = -10f,
                 targetValue = 10f,
                 animationSpec = infiniteRepeatable(
-                    animation = tween(2000, easing = LinearEasing), // 2 segundos para subir/descer
+                    animation = tween(2000, easing = LinearEasing),
                     repeatMode = RepeatMode.Reverse
                 ),
                 label = "offsetY"
             )
 
             Image(
-                painter = painterResource(id = R.drawable.loginicon),
+                painter = painterResource(id = R.drawable.analisar),
                 contentDescription = "Logo",
                 modifier = Modifier
-                    .size(240.dp) // Aumenta o tamanho
-                    .offset { IntOffset(0, offsetY.roundToInt()) } // Faz "flutuar"
+                    .size(240.dp)
+                    .offset { IntOffset(0, offsetY.roundToInt()) }
                     .padding(bottom = 16.dp)
             )
-
         }
 
-        // Conteúdo rolável
-        Column(
+        // Texto fixo de boas-vindas centralizado
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState) // Adicionando scroll aqui
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            contentAlignment = Alignment.Center
         ) {
             Text(
                 "Bem-vindo, $userName!",
-                fontFamily = FontFamily.Cursive,
+                fontFamily = LobsterTwo,
                 fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
                 color = primaryColor,
-                modifier = Modifier.padding(vertical = 24.dp)
+                textAlign = TextAlign.Center
             )
+        }
 
-            if (mostrarRegistros) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 24.dp, bottom = 40.dp) // Adicionando padding bottom para espaço
-                ) {
-                    banco.forEachIndexed { index, registro ->
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                                .background(cardBackground, shape = RoundedCornerShape(8.dp))
-                                .padding(12.dp)
-                        ) {
-                            Text("Registro ${index + 1}", color = primaryColor, fontSize = 18.sp)
-                            Text("Nome: ${registro["nome"]}", color = textColor)
-                            Text("Apelido: ${registro["apelido"]}", color = textColor)
-                            Text("Email: ${registro["email"]}", color = textColor)
-                            Text("Senha: ${registro["senha"]}", color = textColor)
-                            Text("Telefone: ${registro["telefone"]}", color = textColor)
-                        }
+        // Conteúdo rolável: apenas registros
+        if (mostrarRegistros) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                banco.forEachIndexed { index, registro ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .background(cardBackground, shape = RoundedCornerShape(8.dp))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            "Registro ${index + 1}",
+                            color = primaryColor,
+                            fontSize = 18.sp,
+                            fontFamily = LobsterTwo,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text("Nome: ${registro["nome"]}", color = textColor, fontFamily = LobsterTwo)
+                        Text("Apelido: ${registro["apelido"]}", color = textColor, fontFamily = LobsterTwo)
+                        Text("Email: ${registro["email"]}", color = textColor, fontFamily = LobsterTwo)
+                        Text("Senha: ${registro["senha"]}", color = textColor, fontFamily = LobsterTwo)
+                        Text("Telefone: ${registro["telefone"]}", color = textColor, fontFamily = LobsterTwo)
                     }
                 }
-            } else {
+            }
+        } else {
+            // Mensagem quando não há registros
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 32.dp, horizontal = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
                     text = "Use o menu no canto superior direito para listar os registros",
                     color = Color.Gray,
-                    fontSize = 16.sp,
+                    fontSize = 24.sp,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .padding(vertical = 32.dp)
-                        .padding(horizontal = 24.dp)
+                    fontFamily = LobsterTwo
                 )
             }
         }
     }
 }
+
+
 
 
 //TELA DE LOGIN E CADASTRO
@@ -544,8 +584,9 @@ fun LoginScreen(
         if (errorMessage.isNotEmpty()) {
             Text(
                 text = errorMessage,
-                color = Color.Red,
-                modifier = Modifier.padding(bottom = 8.dp)
+                color = Color(0xFFFFB300),
+                modifier = Modifier.padding(bottom = 8.dp),
+                fontFamily = LobsterTwo,
             )
         }
 
